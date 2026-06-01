@@ -1,7 +1,7 @@
 import './globals.css'
 
 export const metadata = {
-  title: 'StokvelApp',
+  title: 'StokSync',
   description: 'Manage your stokvel groups easily',
   manifest: '/manifest.json',
 }
@@ -15,7 +15,7 @@ export default function RootLayout({ children }) {
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="StokvelApp" />
+        <meta name="apple-mobile-web-app-title" content="StokSync" />
       </head>
       <body>{children}</body>
     </html>
