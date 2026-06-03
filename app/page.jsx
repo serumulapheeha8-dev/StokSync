@@ -8,6 +8,7 @@ import InstallPrompt from '@/components/InstallPrompt'
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
@@ -27,7 +28,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        data: { full_name: name },
+        data: { full_name: name, phone: phone },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     })
@@ -50,27 +51,47 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Full name</label>
-              <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Your full name" required className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand" />
+              <input
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Your full name"
+                required
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Email address</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" required className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand" />
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                required
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+              />
             </div>
             <div>
-  <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp number</label>
-  <input
-    type="tel"
-    value={phone}
-    onChange={e => setPhone(e.target.value)}
-    placeholder="e.g. 0821234567"
-    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
-  />
-</div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp number</label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                placeholder="e.g. 0821234567"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+              />
+            </div>
             {error && <p className="text-red-500 text-sm bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
-            <button type="submit" disabled={loading} className="w-full py-3 bg-navy hover:bg-navy-dark text-white font-medium rounded-xl transition-colors disabled:opacity-60">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-brand hover:bg-brand-dark text-white font-medium rounded-xl transition-colors disabled:opacity-60"
+            >
               {loading ? 'Sending...' : 'Send login link'}
             </button>
-            <p className="text-center text-xs text-gray-400">We'll send a magic link to your email. No password needed.</p>
+            <p className="text-center text-xs text-gray-400">
+              We'll send a magic link to your email. No password needed.
+            </p>
           </form>
         ) : (
           <div className="text-center">
@@ -80,9 +101,14 @@ export default function LoginPage() {
               </svg>
             </div>
             <h2 className="text-lg font-semibold text-gray-900 mb-2">Check your email!</h2>
-            <p className="text-gray-500 text-sm mb-2">We sent a login link to<br/><span className="font-medium text-gray-900">{email}</span></p>
+            <p className="text-gray-500 text-sm mb-2">
+              We sent a login link to<br/>
+              <span className="font-medium text-gray-900">{email}</span>
+            </p>
             <p className="text-gray-400 text-xs">Click the link in the email to log in. Check your spam if you don't see it.</p>
-            <button onClick={() => setSent(false)} className="mt-6 text-sm text-brand hover:underline">Use a different email</button>
+            <button onClick={() => setSent(false)} className="mt-6 text-sm text-brand hover:underline">
+              Use a different email
+            </button>
           </div>
         )}
 
