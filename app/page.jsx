@@ -56,6 +56,16 @@ export default function LoginPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Email address</label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" required className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand" />
             </div>
+            <div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp number</label>
+  <input
+    type="tel"
+    value={phone}
+    onChange={e => setPhone(e.target.value)}
+    placeholder="e.g. 0821234567"
+    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+  />
+</div>
             {error && <p className="text-red-500 text-sm bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
             <button type="submit" disabled={loading} className="w-full py-3 bg-navy hover:bg-navy-dark text-white font-medium rounded-xl transition-colors disabled:opacity-60">
               {loading ? 'Sending...' : 'Send login link'}
