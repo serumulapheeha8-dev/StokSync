@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import Navbar from '@/components/Navbar'
+import PayButton from '@/components/PayButton'
 
 export default function GroupDetailPage() {
   const [group, setGroup] = useState(null)
@@ -46,7 +47,7 @@ export default function GroupDetailPage() {
 
     const { data: contribs } = await supabase
       .from('contributions')
-      .select('*, group_members(name)')
+      .select('*, group_members(name, email)')
       .eq('group_id', params.id)
       .order('created_at', { ascending: false })
     setContributions(contribs || [])
@@ -97,9 +98,7 @@ export default function GroupDetailPage() {
   }
 
   const currentMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' })
-  const paidThisMonth = contributions.filter(
-    c => c.month === currentMonth && c.status === 'Paid'
-  ).length
+  const paidThisMonth = contributions.filter(c => c.month === currentMonth && c.status === 'Paid').length
 
   if (loading) {
     return (
@@ -163,6 +162,7 @@ export default function GroupDetailPage() {
       </div>
 
       <div className="max-w-lg mx-auto px-5 pt-5">
+
         {/* MEMBERS TAB */}
         {activeTab === 'members' && (
           <div>
@@ -261,7 +261,7 @@ export default function GroupDetailPage() {
                 </select>
                 <input
                   type="text"
-                  placeholder="Month (e.g. June 2025)"
+                  placeholder="Month (e.g. June 2026)"
                   value={newContrib.month}
                   onChange={e => setNewContrib({ ...newContrib, month: e.target.value })}
                   required
@@ -285,27 +285,42 @@ export default function GroupDetailPage() {
               {contributions.length === 0 ? (
                 <p className="text-center text-gray-400 text-sm py-8">No contributions logged yet</p>
               ) : (
-                contributions.map(c => (
-                  <div key={c.id} className="flex items-center gap-3 px-4 py-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm text-gray-900">{c.group_members?.name}</p>
-                      <p className="text-xs text-gray-400">{c.month}</p>
+                contributions.map(c => {
+                  const member = members.find(m => m.id === c.member_id)
+                  const isCurrentUser = member?.email === userId
+                  return (
+                    <div key={c.id} className="flex items-center gap-3 px-4 py-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm text-gray-900">{c.group_members?.name}</p>
+                        <p className="text-xs text-gray-400">{c.month}</p>
+                      </div>
+                      <p className="text-sm font-semibold text-gray-900 flex-shrink-0">R{c.amount}</p>
+                      {c.status === 'Paid' ? (
+                        <span className="text-xs bg-brand-light text-brand-dark px-2.5 py-1 rounded-full font-medium flex-shrink-0">Paid ✓</span>
+                      ) : isAdmin ? (
+                        <div className="flex gap-2 flex-shrink-0">
+                          <button
+                            onClick={() => markPaid(c.id)}
+                            className="text-xs bg-amber-50 text-amber-600 border border-amber-200 px-2.5 py-1 rounded-full font-medium hover:bg-amber-100"
+                          >
+                            Confirm
+                          </button>
+                          <PayButton
+                            contribution={c}
+                            member={c.group_members}
+                            group={group}
+                          />
+                        </div>
+                      ) : (
+                        <PayButton
+                          contribution={c}
+                          member={c.group_members}
+                          group={group}
+                        />
+                      )}
                     </div>
-                    <p className="text-sm font-semibold text-gray-900 flex-shrink-0">R{c.amount}</p>
-                    {c.status === 'Paid' ? (
-                      <span className="text-xs bg-brand-light text-brand-dark px-2.5 py-1 rounded-full font-medium flex-shrink-0">Paid ✓</span>
-                    ) : isAdmin ? (
-                      <button
-                        onClick={() => markPaid(c.id)}
-                        className="text-xs bg-amber-50 text-amber-600 border border-amber-200 px-2.5 py-1 rounded-full font-medium flex-shrink-0 hover:bg-amber-100"
-                      >
-                        Mark paid
-                      </button>
-                    ) : (
-                      <span className="text-xs bg-amber-50 text-amber-500 px-2.5 py-1 rounded-full font-medium flex-shrink-0">Pending</span>
-                    )}
-                  </div>
-                ))
+                  )
+                })
               )}
             </div>
           </div>
