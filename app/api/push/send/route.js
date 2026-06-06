@@ -1,41 +1,65 @@
-import { createClient } from '@supabase/supabase-js'
+import crypto from 'crypto'
 
 export async function POST(request) {
   try {
-    const { userId, title, body, url } = await request.json()
+    const body = await request.json()
+    const { amount, contributionId, memberName, memberEmail, groupName } = body
 
-    const webpush = await import('web-push')
-    
-    webpush.default.setVapidDetails(
-      'mailto:info@echeloncrest.co.za',
-      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-      process.env.VAPID_PRIVATE_KEY
-    )
+    const merchantId = process.env.PAYFAST_MERCHANT_ID
+    const merchantKey = process.env.PAYFAST_MERCHANT_KEY
+    const passphrase = process.env.PAYFAST_PASSPHRASE
+    const isSandbox = process.env.PAYFAST_SANDBOX === 'true'
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    )
+    const returnUrl = `${process.env.NEXT_PUBLIC_APP_URL}/payment/success?contribution_id=${contributionId}`
+    const cancelUrl = `${process.env.NEXT_PUBLIC_APP_URL}/payment/cancel`
+    const notifyUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/payfast/notify`
 
-    const { data: sub } = await supabase
-      .from('push_subscriptions')
-      .select('subscription')
-      .eq('user_id', userId)
-      .single()
+    const nameParts = (memberName || 'Member').split(' ')
+    const firstName = nameParts[0] || 'Member'
+    const lastName = nameParts.slice(1).join(' ') || ''
 
-    if (!sub) return Response.json({ success: false, error: 'No subscription found' })
+    // Build payment data in EXACT order PayFast expects
+    const paymentData = {
+      merchant_id: String(merchantId),
+      merchant_key: String(merchantKey),
+      return_url: returnUrl,
+      cancel_url: cancelUrl,
+      notify_url: notifyUrl,
+      name_first: firstName,
+      name_last: lastName,
+      email_address: memberEmail || 'test@test.com',
+      m_payment_id: String(contributionId),
+      amount: parseFloat(amount).toFixed(2),
+      item_name: `StokSync - ${groupName}`,
+    }
 
-    const subscription = JSON.parse(sub.subscription)
-    const payload = JSON.stringify({
-      title,
-      body,
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-96x96.png',
-      url: url || '/',
+    // Generate signature
+    function generateSignature(data, passPhrase = null) {
+      let pfOutput = ''
+      for (const key in data) {
+        if (data[key] !== '') {
+          pfOutput += `${key}=${encodeURIComponent(data[key].trim()).replace(/%20/g, '+')}&`
+        }
+      }
+      // Remove last &
+      let getString = pfOutput.slice(0, -1)
+      if (passPhrase !== null) {
+        getString += `&passphrase=${encodeURIComponent(passPhrase.trim()).replace(/%20/g, '+')}`
+      }
+      return crypto.createHash('md5').update(getString).digest('hex')
+    }
+
+    const signature = generateSignature(paymentData, passphrase)
+
+    const payfastUrl = isSandbox
+      ? 'https://sandbox.payfast.co.za/eng/process'
+      : 'https://www.payfast.co.za/eng/process'
+
+    return Response.json({
+      success: true,
+      payfastUrl,
+      paymentData: { ...paymentData, signature },
     })
-
-    await webpush.default.sendNotification(subscription, payload)
-    return Response.json({ success: true })
   } catch (error) {
     return Response.json({ success: false, error: error.message }, { status: 500 })
   }
