@@ -1,20 +1,19 @@
 'use client'
 
+import { Suspense } from 'react'
 import { useEffect, useState } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 
-export default function PaymentSuccess() {
+function PaymentSuccessContent() {
   const [contribution, setContribution] = useState(null)
   const searchParams = useSearchParams()
-  const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
     const contributionId = searchParams.get('contribution_id')
     if (contributionId) {
-      // Poll for payment confirmation (PayFast ITN may take a few seconds)
       const checkPayment = async () => {
         const { data } = await supabase
           .from('contributions')
@@ -38,7 +37,6 @@ export default function PaymentSuccess() {
             <path d="M20 4C11.2 4 4 11.2 4 20s7.2 16 16 16 16-7.2 16-16S28.8 4 20 4zm-3 23l-6-6 1.8-1.8L17 23.4l10.2-10.2L29 15l-12 12z" fill="#1D9E75"/>
           </svg>
         </div>
-
         <h1 className="text-2xl font-semibold text-gray-900 mb-2">Payment Successful!</h1>
         <p className="text-gray-500 text-sm mb-6">Your contribution has been received</p>
 
@@ -63,17 +61,19 @@ export default function PaymentSuccess() {
           </div>
         )}
 
-        <Link
-          href="/dashboard"
-          className="block w-full py-3 bg-brand text-white font-medium rounded-xl text-center hover:bg-brand-dark transition-colors"
-        >
+        <Link href="/dashboard" className="block w-full py-3 bg-brand text-white font-medium rounded-xl text-center hover:bg-brand-dark transition-colors">
           Back to Dashboard
         </Link>
-
-        <p className="text-xs text-gray-400 mt-4">
-          Powered by PayFast · Echelon Crest (PTY) LTD
-        </p>
+        <p className="text-xs text-gray-400 mt-4">Powered by PayFast · Echelon Crest (PTY) LTD</p>
       </div>
     </div>
+  )
+}
+
+export default function PaymentSuccess() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin"/></div>}>
+      <PaymentSuccessContent />
+    </Suspense>
   )
 }
