@@ -297,7 +297,7 @@ export default function GroupDetailPage() {
                       <p className="text-sm font-semibold text-gray-900 flex-shrink-0">R{c.amount}</p>
                       {c.status === 'Paid' ? (
                         <span className="text-xs bg-brand-light text-brand-dark px-2.5 py-1 rounded-full font-medium flex-shrink-0">Paid ✓</span>
-                      ) : isAdmin ? (
+                      ) : (
                         <div className="flex gap-2 flex-shrink-0">
                           <button
                             onClick={() => markPaid(c.id)}
