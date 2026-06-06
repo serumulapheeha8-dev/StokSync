@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import Navbar from '@/components/Navbar'
+import InstallPrompt from '@/components/InstallPrompt'
+import NotificationBell from '@/components/NotificationBell'
 
 export default function Dashboard() {
   const [user, setUser] = useState(null)
@@ -108,12 +110,15 @@ export default function Dashboard() {
             <p className="text-sm text-gray-400">Good day,</p>
             <h1 className="text-xl font-semibold text-gray-900">{firstName} 👋</h1>
           </div>
-          <button
-            onClick={handleLogout}
-            className="text-xs text-gray-400 hover:text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg"
-          >
-            Log out
-          </button>
+          <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+            <NotificationBell />
+            <button
+              onClick={handleLogout}
+              className="text-xs text-gray-400 hover:text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg"
+            >
+              Log out
+            </button>
+          </div>
         </div>
       </div>
 
@@ -229,6 +234,7 @@ export default function Dashboard() {
       </div>
 
       <Navbar />
+      <InstallPrompt />
     </div>
   )
 }
