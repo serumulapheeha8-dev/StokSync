@@ -299,24 +299,20 @@ export default function GroupDetailPage() {
                         <span className="text-xs bg-brand-light text-brand-dark px-2.5 py-1 rounded-full font-medium flex-shrink-0">Paid ✓</span>
                       ) : (
                         <div className="flex gap-2 flex-shrink-0">
-                          <button
-                            onClick={() => markPaid(c.id)}
-                            className="text-xs bg-amber-50 text-amber-600 border border-amber-200 px-2.5 py-1 rounded-full font-medium hover:bg-amber-100"
-                          >
-                            Confirm
-                          </button>
+                          {isAdmin && (
+                            <button
+                              onClick={() => markPaid(c.id)}
+                              className="text-xs bg-amber-50 text-amber-600 border border-amber-200 px-2.5 py-1 rounded-full font-medium hover:bg-amber-100"
+                            >
+                              Confirm
+                            </button>
+                          )}
                           <PayButton
                             contribution={c}
                             member={c.group_members}
                             group={group}
                           />
                         </div>
-                      ) : (
-                        <PayButton
-                          contribution={c}
-                          member={c.group_members}
-                          group={group}
-                        />
                       )}
                     </div>
                   )
