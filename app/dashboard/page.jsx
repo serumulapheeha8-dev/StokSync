@@ -6,14 +6,14 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import Navbar from '@/components/Navbar'
 import InstallPrompt from '@/components/InstallPrompt'
-import NotificationBell from '@/components/NotificationBell'
+import PushPermission from '@/components/PushPermission'
 
 export default function Dashboard() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [groups, setGroups] = useState([])
   const [recentContributions, setRecentContributions] = useState([])
-  const [stats, setStats] = useState({ totalSaved: 0, nextPayout: null, dueThisMonth: 0 })
+  const [stats, setStats] = useState({ nextPayout: null, dueThisMonth: 0 })
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const supabase = createClient()
@@ -24,7 +24,6 @@ export default function Dashboard() {
       if (!session) { router.push('/'); return }
       setUser(session.user)
 
-      // Load profile
       const { data: prof } = await supabase
         .from('profiles')
         .select('*')
@@ -32,54 +31,64 @@ export default function Dashboard() {
         .single()
       setProfile(prof)
 
-      // Load groups where user is admin OR member
+      // Get groups where user is admin
       const { data: adminGroups } = await supabase
         .from('groups')
-        .select('*, group_members(count)')
+        .select('*')
         .eq('admin_id', session.user.id)
 
-      const { data: memberGroups } = await supabase
-        .from('groups')
-        .select('*, group_members(count)')
-        .neq('admin_id', session.user.id)
-        .in('id', 
-          (await supabase.from('group_members').select('group_id').eq('user_id', session.user.id))
-          .data?.map(m => m.group_id) || []
-        )
+      // Get group_ids where user is a member
+      const { data: memberRows } = await supabase
+        .from('group_members')
+        .select('group_id')
+        .eq('user_id', session.user.id)
 
-      const allGroups = [...(adminGroups || []), ...(memberGroups || [])]
+      const memberGroupIds = (memberRows || []).map(m => m.group_id)
+
+      let memberGroups = []
+      if (memberGroupIds.length > 0) {
+        const adminGroupIds = (adminGroups || []).map(g => g.id)
+        const nonAdminGroupIds = memberGroupIds.filter(id => !adminGroupIds.includes(id))
+        if (nonAdminGroupIds.length > 0) {
+          const { data } = await supabase
+            .from('groups')
+            .select('*')
+            .in('id', nonAdminGroupIds)
+          memberGroups = data || []
+        }
+      }
+
+      const allGroups = [...(adminGroups || []), ...memberGroups]
       setGroups(allGroups)
 
-      // Load recent contributions
-      const { data: contribs } = await supabase
-        .from('contributions')
-        .select('*, group_members(name), groups(name)')
-        .in('group_id', allGroups.map(g => g.id))
-        .order('created_at', { ascending: false })
-        .limit(5)
-      setRecentContributions(contribs || [])
+      if (allGroups.length > 0) {
+        const { data: contribs } = await supabase
+          .from('contributions')
+          .select('*, group_members(name), groups(name)')
+          .in('group_id', allGroups.map(g => g.id))
+          .order('created_at', { ascending: false })
+          .limit(5)
+        setRecentContributions(contribs || [])
 
-      // Calculate stats
-      const totalSaved = allGroups.reduce((sum, g) => sum + (g.contribution_amount || 0), 0)
-      const { data: nextPayoutData } = await supabase
-        .from('payouts')
-        .select('*, group_members(name)')
-        .in('group_id', allGroups.map(g => g.id))
-        .eq('status', 'Upcoming')
-        .order('scheduled_date', { ascending: true })
-        .limit(1)
+        const { data: nextPayoutData } = await supabase
+          .from('payouts')
+          .select('*, group_members(name)')
+          .in('group_id', allGroups.map(g => g.id))
+          .eq('status', 'Upcoming')
+          .order('scheduled_date', { ascending: true })
+          .limit(1)
 
-      const { data: pendingContribs } = await supabase
-        .from('contributions')
-        .select('amount')
-        .in('group_id', allGroups.map(g => g.id))
-        .eq('status', 'Pending')
+        const { data: pendingContribs } = await supabase
+          .from('contributions')
+          .select('amount')
+          .in('group_id', allGroups.map(g => g.id))
+          .eq('status', 'Pending')
 
-      setStats({
-        totalSaved,
-        nextPayout: nextPayoutData?.[0] || null,
-        dueThisMonth: pendingContribs?.length || 0,
-      })
+        setStats({
+          nextPayout: nextPayoutData?.[0] || null,
+          dueThisMonth: pendingContribs?.length || 0,
+        })
+      }
 
       setLoading(false)
     }
@@ -91,7 +100,9 @@ export default function Dashboard() {
     router.push('/')
   }
 
-  const firstName = profile?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'there'
+  const firstName = profile?.full_name?.split(' ')[0] ||
+    user?.user_metadata?.full_name?.split(' ')[0] ||
+    user?.email?.split('@')[0] || 'there'
 
   if (loading) {
     return (
@@ -102,28 +113,20 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-safe">
-      {/* Header */}
+    <div className="min-h-screen bg-gray-50 pb-24">
       <div className="bg-white px-5 pt-12 pb-5 border-b border-gray-100">
         <div className="flex items-center justify-between max-w-lg mx-auto">
           <div>
             <p className="text-sm text-gray-400">Good day,</p>
             <h1 className="text-xl font-semibold text-gray-900">{firstName} 👋</h1>
           </div>
-          <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
-            <NotificationBell />
-            <button
-              onClick={handleLogout}
-              className="text-xs text-gray-400 hover:text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg"
-            >
-              Log out
-            </button>
-          </div>
+          <button onClick={handleLogout} className="text-xs text-gray-400 hover:text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg">
+            Log out
+          </button>
         </div>
       </div>
 
       <div className="max-w-lg mx-auto px-5 pt-5 space-y-5">
-        {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-white rounded-2xl p-4 border border-gray-100">
             <p className="text-xs text-gray-400 mb-1">My groups</p>
@@ -139,7 +142,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Next payout */}
         {stats.nextPayout && (
           <div className="bg-brand-light rounded-2xl p-4 border border-brand/20">
             <p className="text-xs font-medium text-brand-dark mb-1">Next payout</p>
@@ -159,31 +161,24 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Groups */}
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">My Stokvels</h2>
             <Link href="/groups/new" className="text-sm text-brand font-medium">+ New</Link>
           </div>
           {groups.length === 0 ? (
-            <Link href="/groups/new" className="block bg-white rounded-2xl p-6 border border-dashed border-gray-200 text-center">
-              <p className="text-gray-400 text-sm mb-1">No groups yet</p>
-              <p className="text-brand font-medium text-sm">+ Create your first stokvel</p>
-            </Link>
+            <div className="bg-white rounded-2xl p-6 border border-gray-100 text-center">
+              <p className="text-gray-400 text-sm mb-3">No stokvel groups yet</p>
+              <Link href="/groups/new" className="text-brand font-medium text-sm">+ Create your first stokvel</Link>
+            </div>
           ) : (
             <div className="space-y-3">
               {groups.slice(0, 3).map(group => (
-                <Link
-                  key={group.id}
-                  href={`/groups/${group.id}`}
-                  className="block bg-white rounded-2xl p-4 border border-gray-100 hover:border-brand/30 transition-colors"
-                >
+                <Link key={group.id} href={`/groups/${group.id}`} className="block bg-white rounded-2xl p-4 border border-gray-100 hover:border-brand/30 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-brand-light flex items-center justify-center">
-                        <span className="text-brand font-semibold text-sm">
-                          {group.name.charAt(0).toUpperCase()}
-                        </span>
+                        <span className="text-brand font-semibold text-sm">{group.name.charAt(0).toUpperCase()}</span>
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">{group.name}</p>
@@ -197,15 +192,12 @@ export default function Dashboard() {
                 </Link>
               ))}
               {groups.length > 3 && (
-                <Link href="/groups" className="block text-center text-sm text-brand py-2">
-                  View all {groups.length} groups →
-                </Link>
+                <Link href="/groups" className="block text-center text-sm text-brand py-2">View all {groups.length} groups →</Link>
               )}
             </div>
           )}
         </div>
 
-        {/* Recent Activity */}
         {recentContributions.length > 0 && (
           <div>
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Recent activity</h2>
@@ -220,9 +212,7 @@ export default function Dashboard() {
                     <p className={`text-sm font-medium ${c.status === 'Paid' ? 'text-brand' : 'text-amber-500'}`}>
                       {c.status === 'Paid' ? `+R${c.amount}` : 'Pending'}
                     </p>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      c.status === 'Paid' ? 'bg-brand-light text-brand-dark' : 'bg-amber-50 text-amber-600'
-                    }`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${c.status === 'Paid' ? 'bg-brand-light text-brand-dark' : 'bg-amber-50 text-amber-600'}`}>
                       {c.status}
                     </span>
                   </div>
@@ -235,6 +225,7 @@ export default function Dashboard() {
 
       <Navbar />
       <InstallPrompt />
+      <PushPermission />
     </div>
   )
 }
