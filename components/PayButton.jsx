@@ -4,10 +4,11 @@ import { useState } from 'react'
 
 export default function PayButton({ contribution, member, group }) {
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   if (contribution.status === 'Paid') {
     return (
-      <span className="text-xs bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium">
+      <span className="text-xs bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium flex-shrink-0">
         Paid ✓
       </span>
     )
@@ -15,15 +16,15 @@ export default function PayButton({ contribution, member, group }) {
 
   async function handlePay() {
     setLoading(true)
+    setError('')
     try {
-      const res = await fetch('/api/payfast/initiate', {
+      const res = await fetch('/api/yoco/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount: contribution.amount,
           contributionId: contribution.id,
           memberName: member?.name || 'Member',
-          memberEmail: member?.email || 'test@test.com',
           groupName: group?.name || 'Stokvel',
         }),
       })
@@ -31,49 +32,40 @@ export default function PayButton({ contribution, member, group }) {
       const data = await res.json()
 
       if (!data.success) {
-        alert('Payment error: ' + (data.error || 'Unknown error'))
+        setError(data.error || 'Payment failed')
         setLoading(false)
         return
       }
 
-      const form = document.createElement('form')
-      form.method = 'POST'
-      form.action = data.payfastUrl
+      // Redirect to Yoco checkout
+      window.location.href = data.checkoutUrl
 
-      Object.entries(data.paymentData).forEach(([key, value]) => {
-        const input = document.createElement('input')
-        input.type = 'hidden'
-        input.name = key
-        input.value = value
-        form.appendChild(input)
-      })
-
-      document.body.appendChild(form)
-      form.submit()
-
-    } catch (error) {
-      alert('Error: ' + error.message)
+    } catch (err) {
+      setError('Something went wrong. Please try again.')
       setLoading(false)
     }
   }
 
   return (
-    <button
-      onClick={handlePay}
-      disabled={loading}
-      style={{
-        backgroundColor: '#1D9E75',
-        color: 'white',
-        border: 'none',
-        padding: '6px 12px',
-        borderRadius: '20px',
-        fontSize: '12px',
-        fontWeight: '500',
-        cursor: 'pointer',
-        flexShrink: 0,
-      }}
-    >
-      {loading ? 'Loading...' : `Pay R${contribution.amount}`}
-    </button>
+    <div className="flex flex-col items-end flex-shrink-0">
+      <button
+        onClick={handlePay}
+        disabled={loading}
+        style={{
+          backgroundColor: '#1D9E75',
+          color: 'white',
+          border: 'none',
+          padding: '6px 14px',
+          borderRadius: '20px',
+          fontSize: '12px',
+          fontWeight: '600',
+          cursor: 'pointer',
+          opacity: loading ? 0.6 : 1,
+        }}
+      >
+        {loading ? 'Loading...' : `Pay R${contribution.amount}`}
+      </button>
+      {error && <p style={{fontSize:'11px', color:'red', marginTop:'3px'}}>{error}</p>}
+    </div>
   )
 }
