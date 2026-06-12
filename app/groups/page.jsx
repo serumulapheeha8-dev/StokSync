@@ -21,7 +21,7 @@ export default function GroupsPage() {
 
       const { data: adminGroups } = await supabase
         .from('groups')
-        .select('*, group_members(id, name, status)')
+        .select('*, group_members(id)')
         .eq('admin_id', session.user.id)
         .order('created_at', { ascending: false })
 
@@ -30,14 +30,17 @@ export default function GroupsPage() {
         .select('group_id')
         .eq('user_id', session.user.id)
 
-      const memberGroupIds = memberRows?.map(m => m.group_id) || []
+      const memberGroupIds = (memberRows || []).map(m => m.group_id)
+      const adminGroupIds = (adminGroups || []).map(g => g.id)
+      const nonAdminGroupIds = memberGroupIds.filter(id => !adminGroupIds.includes(id))
+
       let memberGroups = []
-      if (memberGroupIds.length > 0) {
+      if (nonAdminGroupIds.length > 0) {
         const { data } = await supabase
           .from('groups')
-          .select('*, group_members(id, name)')
-          .in('id', memberGroupIds)
-          .neq('admin_id', session.user.id)
+          .select('*, group_members(id)')
+          .in('id', nonAdminGroupIds)
+          .order('created_at', { ascending: false })
         memberGroups = data || []
       }
 
@@ -56,27 +59,17 @@ export default function GroupsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-safe">
+    <div className="min-h-screen bg-gray-50 pb-24">
       <div className="bg-white px-5 pt-12 pb-5 border-b border-gray-100">
         <div className="flex items-center justify-between max-w-lg mx-auto">
           <h1 className="text-xl font-semibold">My Stokvels</h1>
-          <Link
-            href="/groups/new"
-            className="bg-brand text-white text-sm font-medium px-4 py-2 rounded-xl"
-          >
-            + Create
-          </Link>
+          <Link href="/groups/new" className="bg-brand text-white text-sm font-medium px-4 py-2 rounded-xl">+ Create</Link>
         </div>
       </div>
 
       <div className="max-w-lg mx-auto px-5 pt-5 space-y-3">
         {groups.length === 0 ? (
           <div className="text-center py-16">
-            <div className="w-16 h-16 bg-brand-light rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-                <path d="M14 6v16M6 14h16" stroke="#1D9E75" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-            </div>
             <p className="text-gray-400 mb-4">No stokvel groups yet</p>
             <Link href="/groups/new" className="text-brand font-medium">Create your first group →</Link>
           </div>
@@ -85,11 +78,7 @@ export default function GroupsPage() {
             const memberCount = group.group_members?.length || 0
             const isAdmin = group.admin_id === userId
             return (
-              <Link
-                key={group.id}
-                href={`/groups/${group.id}`}
-                className="block bg-white rounded-2xl p-5 border border-gray-100 hover:border-brand/30 transition-colors"
-              >
+              <Link key={group.id} href={`/groups/${group.id}`} className="block bg-white rounded-2xl p-5 border border-gray-100 hover:border-brand/30 transition-colors">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-xl bg-brand-light flex items-center justify-center">
@@ -118,7 +107,6 @@ export default function GroupsPage() {
           })
         )}
       </div>
-
       <Navbar />
     </div>
   )
