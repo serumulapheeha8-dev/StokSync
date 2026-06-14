@@ -25,7 +25,15 @@ export async function POST(request) {
     const data = await response.json()
 
     if (!response.ok) {
-      return Response.json({ success: false, error: data.message || 'Yoco error' }, { status: 400 })
+      // Return full Yoco error details for debugging
+      return Response.json({ 
+        success: false, 
+        error: data.message || data.error || JSON.stringify(data),
+        yocoStatus: response.status,
+        yocoResponse: data,
+        hasSecretKey: !!process.env.YOCO_SECRET_KEY,
+        hasAppUrl: !!process.env.NEXT_PUBLIC_APP_URL,
+      }, { status: 400 })
     }
 
     return Response.json({
