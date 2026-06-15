@@ -32,11 +32,14 @@ export async function POST(request) {
 
     // Get admin's push subscription and send notification
     if (contribution?.groups?.admin_id) {
-      const { data: adminSub } = await supabase
+      console.log('Looking for admin subscription, admin_id:', contribution.groups.admin_id)
+      const { data: adminSub, error: subError } = await supabase
         .from('push_subscriptions')
         .select('subscription')
         .eq('user_id', contribution.groups.admin_id)
         .single()
+
+      console.log('Admin subscription found:', !!adminSub, 'Error:', subError?.message)
 
       if (adminSub) {
         try {
@@ -54,11 +57,17 @@ export async function POST(request) {
             url: '/dashboard',
           })
 
+          console.log('Sending push notification...')
           await webpush.default.sendNotification(subscription, payload)
+          console.log('Push notification sent successfully')
         } catch (pushError) {
-          console.error('Push notification error:', pushError)
+          console.error('Push notification error:', pushError.message, pushError.stack)
         }
+      } else {
+        console.log('No admin subscription found - admin has not enabled notifications')
       }
+    } else {
+      console.log('No admin_id found on contribution.groups')
     }
 
     return new Response('OK', { status: 200 })
