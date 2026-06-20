@@ -1,12 +1,52 @@
 import { createClient } from '@supabase/supabase-js'
 
+async function sendWhatsApp(to, templateName, params) {
+  if (!to) return
+  try {
+    let phone = to.replace(/\s+/g, '').replace(/^0/, '27').replace('+', '')
+    if (!phone.startsWith('27')) phone = '27' + phone
+
+    const response = await fetch(
+      `https://graph.facebook.com/v21.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          to: phone,
+          type: 'template',
+          template: {
+            name: templateName,
+            language: { code: 'en_US' },
+            components: params ? [{
+              type: 'body',
+              parameters: params.map(p => ({ type: 'text', text: String(p) })),
+            }] : [],
+          },
+        }),
+      }
+    )
+    const data = await response.json()
+    if (!response.ok) {
+      console.error('WhatsApp send error:', JSON.stringify(data))
+    } else {
+      console.log('WhatsApp sent to:', phone, 'messageId:', data.messages?.[0]?.id)
+    }
+  } catch (err) {
+    console.error('WhatsApp error:', err.message)
+  }
+}
+
 export async function POST(request) {
   try {
     const body = await request.json()
-    console.log('Yoco webhook received:', JSON.stringify(body))
+    console.log('Yoco webhook received, type:', body.type)
 
     if (body.type !== 'payment.succeeded') {
-      return new Response('OK - not a success event', { status: 200 })
+      return new Response('OK', { status: 200 })
     }
 
     const contributionId = body.payload?.metadata?.contributionId
@@ -22,7 +62,7 @@ export async function POST(request) {
       .from('contributions')
       .update({ status: 'Paid', paid_at: new Date().toISOString() })
       .eq('id', contributionId)
-      .select('*, groups(name, admin_id), group_members(name)')
+      .select('*, groups(name, admin_id), group_members(name, phone, email)')
       .single()
 
     if (updateError) {
@@ -30,16 +70,41 @@ export async function POST(request) {
       return new Response('Update failed', { status: 500 })
     }
 
-    // Get admin's push subscription and send notification
+    console.log('Contribution marked as Paid:', contributionId)
+
+    const memberName = contribution?.group_members?.name || 'Member'
+    const amount = contribution?.amount || '0'
+    const groupName = contribution?.groups?.name || 'Stokvel'
+    const month = contribution?.month || 'this month'
+    const memberPhone = contribution?.group_members?.phone
+
+    // Send WhatsApp to member confirming their payment
+    if (memberPhone) {
+      await sendWhatsApp(memberPhone, 'payment_confirmed', [
+        memberName, String(amount), groupName, month
+      ])
+    }
+
+    // Get admin's phone and notify them
     if (contribution?.groups?.admin_id) {
-      console.log('Looking for admin subscription, admin_id:', contribution.groups.admin_id)
-      const { data: adminSub, error: subError } = await supabase
+      const { data: adminProfile } = await supabase
+        .from('profiles')
+        .select('phone, full_name')
+        .eq('id', contribution.groups.admin_id)
+        .single()
+
+      if (adminProfile?.phone) {
+        await sendWhatsApp(adminProfile.phone, 'payment_confirmed', [
+          adminProfile.full_name || 'Admin', String(amount), groupName, month
+        ])
+      }
+
+      // Also try push notification
+      const { data: adminSub } = await supabase
         .from('push_subscriptions')
         .select('subscription')
         .eq('user_id', contribution.groups.admin_id)
         .single()
-
-      console.log('Admin subscription found:', !!adminSub, 'Error:', subError?.message)
 
       if (adminSub) {
         try {
@@ -49,30 +114,22 @@ export async function POST(request) {
             process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
             process.env.VAPID_PRIVATE_KEY
           )
-
           const subscription = JSON.parse(adminSub.subscription)
-          const payload = JSON.stringify({
+          await webpush.default.sendNotification(subscription, JSON.stringify({
             title: '💰 Payment Received!',
-            body: `${contribution.group_members?.name} paid R${contribution.amount} for ${contribution.groups?.name}`,
+            body: `${memberName} paid R${amount} for ${groupName}`,
             url: '/dashboard',
-          })
-
-          console.log('Sending push notification...')
-          await webpush.default.sendNotification(subscription, payload)
-          console.log('Push notification sent successfully')
+          }))
+          console.log('Push notification sent to admin')
         } catch (pushError) {
-          console.error('Push notification error:', pushError.message, pushError.stack)
+          console.error('Push error:', pushError.message)
         }
-      } else {
-        console.log('No admin subscription found - admin has not enabled notifications')
       }
-    } else {
-      console.log('No admin_id found on contribution.groups')
     }
 
     return new Response('OK', { status: 200 })
   } catch (error) {
-    console.error('Yoco webhook error:', error)
+    console.error('Webhook error:', error)
     return new Response('Error: ' + error.message, { status: 500 })
   }
 }
