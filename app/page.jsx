@@ -178,6 +178,15 @@ export default function LoginPage() {
         <div className="mt-10 text-center">
           <p className="text-xs text-gray-300">© 2026 Echelon Crest (PTY) LTD</p>
           <p className="text-xs text-gray-300 mt-0.5">All rights reserved</p>
+          <div className="flex items-center justify-center gap-3 mt-3">
+            <a href="/privacy" className="text-xs text-gray-400 hover:text-brand">Privacy</a>
+            <span className="text-gray-200">·</span>
+            <a href="/terms" className="text-xs text-gray-400 hover:text-brand">Terms</a>
+            <span className="text-gray-200">·</span>
+            <a href="/contact" className="text-xs text-gray-400 hover:text-brand">Contact</a>
+            <span className="text-gray-200">·</span>
+            <a href="/refund-policy" className="text-xs text-gray-400 hover:text-brand">Refunds</a>
+          </div>
         </div>
       </div>
       <InstallPrompt />
