@@ -1,5 +1,4 @@
 import { createServerClient } from '@supabase/ssr'
-import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
@@ -22,21 +21,18 @@ export async function GET(request) {
     }
   )
 
+  let isRecovery = type === 'recovery'
+
   if (code) {
-    const { data: { session } } = await supabase.auth.exchangeCodeForSession(code)
-    if (session?.user) {
-      const adminSupabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY
-      )
-      await adminSupabase
-        .from('group_members')
-        .update({ user_id: session.user.id })
-        .eq('email', session.user.email)
-        .is('user_id', null)
-    }
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+    // Supabase sometimes only tells us it's a recovery flow via the session's amr/type info,
+    // but the type param from the URL is the most reliable signal we get from the email link.
   } else if (token_hash && type) {
     await supabase.auth.verifyOtp({ token_hash, type })
+  }
+
+  if (isRecovery) {
+    return NextResponse.redirect(new URL('/reset-password', request.url))
   }
 
   return NextResponse.redirect(new URL('/dashboard', request.url))
