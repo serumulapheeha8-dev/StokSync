@@ -10,11 +10,10 @@ export async function POST(request) {
     )
 
     const { data, error } = await supabase
-      .from('group_members')
-      .update({ user_id: userId })
-      .eq('email', email)
-      .is('user_id', null)
-      .select()
+  .from('group_members')
+  .update({ user_id: userId })
+  .eq('email', email)
+  .select()
 
     return Response.json({ success: true, linked: data?.length || 0 })
   } catch (error) {
