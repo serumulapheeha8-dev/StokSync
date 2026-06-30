@@ -1,5 +1,6 @@
 'use client'
 
+import NotificationSettings from '@/components/NotificationSettings'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -216,6 +217,7 @@ export default function Dashboard() {
                       {c.status}
                     </span>
                   </div>
+                 <NotificationSettings />
                 </div>
               ))}
             </div>
