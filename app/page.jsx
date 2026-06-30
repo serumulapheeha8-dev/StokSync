@@ -1,5 +1,6 @@
 'use client'
 
+import PaymentBadges from '@/components/PaymentBadges'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
@@ -189,6 +190,7 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+     <PaymentBadges />
       <InstallPrompt />
     </div>
   )

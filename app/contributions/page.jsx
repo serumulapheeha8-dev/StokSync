@@ -120,6 +120,7 @@ export default function ContributionsPage() {
                   </span>
                 </div>
               </div>
+             <PaymentBadges />
             ))
           )}
         </div>
