@@ -1,10 +1,10 @@
 'use client'
 
-import PaymentBadges from '@/components/PaymentBadges'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import InstallPrompt from '@/components/InstallPrompt'
+import PaymentBadges from '@/components/PaymentBadges'
 
 export default function LoginPage() {
   const [mode, setMode] = useState('login')
@@ -94,7 +94,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-2">
-            <img src="/logo.png" alt="StokSync Logo" width="180" height="180" style={{objectFit:'contain'}} />
+            <img src="/logo.png" alt="StokSync Logo" width="180" height="180" style={{ objectFit: 'contain' }} />
           </div>
           <p className="text-gray-400 text-xs mt-1">by Echelon Crest (PTY) LTD</p>
         </div>
@@ -176,7 +176,10 @@ export default function LoginPage() {
           </form>
         )}
 
-        <div className="mt-10 text-center">
+        {/* PayFast / PayGate compliance: payment method logos + Terms link, shown on Home Page */}
+        <PaymentBadges />
+
+        <div className="mt-4 text-center">
           <p className="text-xs text-gray-300">© 2026 Echelon Crest (PTY) LTD</p>
           <p className="text-xs text-gray-300 mt-0.5">All rights reserved</p>
           <div className="flex items-center justify-center gap-3 mt-3">
@@ -190,7 +193,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-     <PaymentBadges />
       <InstallPrompt />
     </div>
   )
