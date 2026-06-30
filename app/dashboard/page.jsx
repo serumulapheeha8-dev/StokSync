@@ -1,13 +1,12 @@
 'use client'
 
-import NotificationSettings from '@/components/NotificationSettings'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import Navbar from '@/components/Navbar'
 import InstallPrompt from '@/components/InstallPrompt'
-import PushPermission from '@/components/PushPermission'
+import NotificationSettings from '@/components/NotificationSettings'
 
 export default function Dashboard() {
   const [user, setUser] = useState(null)
@@ -143,6 +142,8 @@ export default function Dashboard() {
           </div>
         </div>
 
+        <NotificationSettings />
+
         {stats.nextPayout && (
           <div className="bg-brand-light rounded-2xl p-4 border border-brand/20">
             <p className="text-xs font-medium text-brand-dark mb-1">Next payout</p>
@@ -217,7 +218,6 @@ export default function Dashboard() {
                       {c.status}
                     </span>
                   </div>
-                 <NotificationSettings />
                 </div>
               ))}
             </div>
@@ -227,7 +227,6 @@ export default function Dashboard() {
 
       <Navbar />
       <InstallPrompt />
-      <PushPermission />
     </div>
   )
 }
