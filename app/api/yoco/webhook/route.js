@@ -40,6 +40,54 @@ async function sendWhatsApp(to, templateName, params) {
   }
 }
 
+async function sendPushToUser(supabase, userId, title, body, url) {
+  try {
+    const { data: subs, error } = await supabase
+      .from('push_subscriptions')
+      .select('subscription, endpoint')
+      .eq('user_id', userId)
+
+    if (error) {
+      console.error('Push fetch error:', error.message)
+      return
+    }
+
+    if (!subs || subs.length === 0) {
+      console.log('No push subscriptions found for user:', userId)
+      return
+    }
+
+    const webpush = await import('web-push')
+    webpush.default.setVapidDetails(
+      'mailto:info@echeloncrest.co.za',
+      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY
+    )
+
+    const payload = JSON.stringify({ title, body, url: url || '/' })
+
+    for (const row of subs) {
+      try {
+        const subscription = JSON.parse(row.subscription)
+        await webpush.default.sendNotification(subscription, payload)
+        console.log('Push sent to device:', row.endpoint?.slice(-12))
+      } catch (sendErr) {
+        console.error('Push send failed for device:', row.endpoint?.slice(-12), sendErr.message)
+        // Clean up dead subscriptions
+        if (sendErr.statusCode === 410 || sendErr.statusCode === 404) {
+          await supabase
+            .from('push_subscriptions')
+            .delete()
+            .eq('user_id', userId)
+            .eq('endpoint', row.endpoint)
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Push overall error:', err.message)
+  }
+}
+
 export async function POST(request) {
   try {
     const body = await request.json()
@@ -57,7 +105,6 @@ export async function POST(request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY
     )
 
-    // Mark contribution as Paid
     const { data: contribution, error: updateError } = await supabase
       .from('contributions')
       .update({ status: 'Paid', paid_at: new Date().toISOString() })
@@ -77,20 +124,21 @@ export async function POST(request) {
     const groupName = contribution?.groups?.name || 'Stokvel'
     const month = contribution?.month || 'this month'
     const memberPhone = contribution?.group_members?.phone
+    const adminId = contribution?.groups?.admin_id
 
-    // Send WhatsApp to member confirming their payment
+    // WhatsApp to member — isolated, won't block anything else
     if (memberPhone) {
       await sendWhatsApp(memberPhone, 'payment_confirmed', [
         memberName, String(amount), groupName, month
       ])
     }
 
-    // Get admin's phone and notify them
-    if (contribution?.groups?.admin_id) {
+    if (adminId) {
+      // WhatsApp to admin — isolated
       const { data: adminProfile } = await supabase
         .from('profiles')
         .select('phone, full_name')
-        .eq('id', contribution.groups.admin_id)
+        .eq('id', adminId)
         .single()
 
       if (adminProfile?.phone) {
@@ -99,37 +147,19 @@ export async function POST(request) {
         ])
       }
 
-      // Also try push notification
-      const { data: adminSub } = await supabase
-        .from('push_subscriptions')
-        .select('subscription')
-        .eq('user_id', contribution.groups.admin_id)
-        .single()
-
-      if (adminSub) {
-        try {
-          const webpush = await import('web-push')
-          webpush.default.setVapidDetails(
-            'mailto:info@echeloncrest.co.za',
-            process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-            process.env.VAPID_PRIVATE_KEY
-          )
-          const subscription = JSON.parse(adminSub.subscription)
-          await webpush.default.sendNotification(subscription, JSON.stringify({
-            title: '💰 Payment Received!',
-            body: `${memberName} paid R${amount} for ${groupName}`,
-            url: '/dashboard',
-          }))
-          console.log('Push notification sent to admin')
-        } catch (pushError) {
-          console.error('Push error:', pushError.message)
-        }
-      }
+      // Push to ALL of admin's devices — isolated, runs regardless of WhatsApp result
+      await sendPushToUser(
+        supabase,
+        adminId,
+        '💰 Payment Received!',
+        `${memberName} paid R${amount} for ${groupName}`,
+        '/dashboard'
+      )
     }
 
     return new Response('OK', { status: 200 })
   } catch (error) {
-    console.error('Webhook error:', error)
+    console.error('Webhook error:', error.message)
     return new Response('Error: ' + error.message, { status: 500 })
   }
 }
