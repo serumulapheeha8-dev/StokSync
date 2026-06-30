@@ -7,6 +7,7 @@ export async function GET(request) {
   const code = requestUrl.searchParams.get('code')
   const token_hash = requestUrl.searchParams.get('token_hash')
   const type = requestUrl.searchParams.get('type')
+  const flow = requestUrl.searchParams.get('flow')
 
   const cookieStore = cookies()
   const supabase = createServerClient(
@@ -21,15 +22,14 @@ export async function GET(request) {
     }
   )
 
-  let isRecovery = type === 'recovery'
-
   if (code) {
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-    // Supabase sometimes only tells us it's a recovery flow via the session's amr/type info,
-    // but the type param from the URL is the most reliable signal we get from the email link.
+    await supabase.auth.exchangeCodeForSession(code)
   } else if (token_hash && type) {
     await supabase.auth.verifyOtp({ token_hash, type })
   }
+
+  // Our own marker survives the round-trip even if Supabase strips/omits "type"
+  const isRecovery = flow === 'recovery' || type === 'recovery'
 
   if (isRecovery) {
     return NextResponse.redirect(new URL('/reset-password', request.url))
