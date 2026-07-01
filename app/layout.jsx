@@ -16,6 +16,7 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="StokSync" />
+        <meta name="facebook-domain-verification" content="jii73vb3mngzpmfcneo5kdsqgdke5a" />
       </head>
       <body>{children}</body>
     </html>
