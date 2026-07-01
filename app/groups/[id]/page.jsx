@@ -124,7 +124,7 @@ export default function GroupDetailPage() {
               <h1 className="text-xl font-semibold">{group.name}</h1>
               <p className="text-xs text-gray-400">R{group.contribution_amount} · {group.cycle}</p>
             </div>
-            isAdmin && (
+            {isAdmin && (
               <span className="text-xs bg-brand-light text-brand-dark px-2 py-1 rounded-full font-medium">Admin</span>
             )}
           </div>
