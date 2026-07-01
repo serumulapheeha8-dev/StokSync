@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import Navbar from '@/components/Navbar'
+import InviteButton from '@/components/InviteButton'
 import PayButton from '@/components/PayButton'
 
 export default function GroupDetailPage() {
@@ -123,11 +124,11 @@ export default function GroupDetailPage() {
               <h1 className="text-xl font-semibold">{group.name}</h1>
               <p className="text-xs text-gray-400">R{group.contribution_amount} · {group.cycle}</p>
             </div>
-            {isAdmin && (
+            isAdmin && (
               <span className="text-xs bg-brand-light text-brand-dark px-2 py-1 rounded-full font-medium">Admin</span>
             )}
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          {isAdmin && (
             <div className="bg-gray-50 rounded-xl p-3 text-center">
               <p className="text-lg font-semibold">{members.length}</p>
               <p className="text-xs text-gray-400">Members</p>
@@ -143,7 +144,7 @@ export default function GroupDetailPage() {
           </div>
         </div>
       </div>
-
+         {isAdmin && (<div className="px-5 pb-3"><InviteButton groupId={group.id} groupName={group.name} contributionAmount={group.contribution_amount} /></div>)}
       {/* Tabs */}
       <div className="bg-white border-b border-gray-100">
         <div className="flex max-w-lg mx-auto">
