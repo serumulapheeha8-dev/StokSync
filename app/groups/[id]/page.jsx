@@ -124,11 +124,11 @@ export default function GroupDetailPage() {
               <h1 className="text-xl font-semibold">{group.name}</h1>
               <p className="text-xs text-gray-400">R{group.contribution_amount} · {group.cycle}</p>
             </div>
-            {isAdmin && (
+            {isAdmin && (<><>
               <span className="text-xs bg-brand-light text-brand-dark px-2 py-1 rounded-full font-medium">Admin</span>
             )}
           </div>
-          {isAdmin && (
+          {isAdmin && (<><>
             <div className="bg-gray-50 rounded-xl p-3 text-center">
               <p className="text-lg font-semibold">{members.length}</p>
               <p className="text-xs text-gray-400">Members</p>
@@ -145,7 +145,7 @@ export default function GroupDetailPage() {
         </div>
       </div>
     )}
-         {isAdmin && (<div className="px-5 pb-3"><InviteButton groupId={group.id} groupName={group.name} contributionAmount={group.contribution_amount} /></div>)}
+         {isAdmin && (<><><div className="px-5 pb-3"><InviteButton groupId={group.id} groupName={group.name} contributionAmount={group.contribution_amount} /></div>)}
       {/* Tabs */}
       <div className="bg-white border-b border-gray-100">
         <div className="flex max-w-lg mx-auto">
@@ -168,7 +168,7 @@ export default function GroupDetailPage() {
         {/* MEMBERS TAB */}
         {activeTab === 'members' && (
           <div>
-            {isAdmin && (
+            {isAdmin && (<><>
               <button
                 onClick={() => setShowAddMember(!showAddMember)}
                 className="w-full py-3 border border-dashed border-brand/40 text-brand text-sm font-medium rounded-xl mb-4 hover:bg-brand-light transition-colors"
@@ -240,7 +240,7 @@ export default function GroupDetailPage() {
         {/* CONTRIBUTIONS TAB */}
         {activeTab === 'contributions' && (
           <div>
-            {isAdmin && (
+            {isAdmin && (<><>
               <button
                 onClick={() => setShowAddContrib(!showAddContrib)}
                 className="w-full py-3 border border-dashed border-brand/40 text-brand text-sm font-medium rounded-xl mb-4 hover:bg-brand-light transition-colors"
@@ -301,7 +301,7 @@ export default function GroupDetailPage() {
                         <span className="text-xs bg-brand-light text-brand-dark px-2.5 py-1 rounded-full font-medium flex-shrink-0">Paid ✓</span>
                       ) : (
                         <div className="flex gap-2 flex-shrink-0">
-                          {isAdmin && (
+                          {isAdmin && (<><>
                             <button
                               onClick={() => markPaid(c.id)}
                               className="text-xs bg-amber-50 text-amber-600 border border-amber-200 px-2.5 py-1 rounded-full font-medium hover:bg-amber-100"
