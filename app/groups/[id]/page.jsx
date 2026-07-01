@@ -144,6 +144,7 @@ export default function GroupDetailPage() {
           </div>
         </div>
       </div>
+    )}
          {isAdmin && (<div className="px-5 pb-3"><InviteButton groupId={group.id} groupName={group.name} contributionAmount={group.contribution_amount} /></div>)}
       {/* Tabs */}
       <div className="bg-white border-b border-gray-100">
