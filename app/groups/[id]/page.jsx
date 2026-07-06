@@ -26,7 +26,7 @@ export default function GroupDetailPage() {
 
   async function load() {
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { router.push('/'); return }
+    if (!session) { router.push('/login'); return }
     setUserId(session.user.id)
 
     const { data: grp } = await supabase

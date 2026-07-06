@@ -44,7 +44,7 @@ export default function JoinPage() {
     if (!isLoggedIn) {
       // Save the invite code to localStorage so we can accept it after login
       localStorage.setItem('pendingInvite', code)
-      router.push('/')
+      router.push('/login')
       return
     }
 
@@ -90,7 +90,7 @@ export default function JoinPage() {
             <h2 className="text-lg font-semibold text-gray-900 mb-2">Invalid Invite</h2>
             <p className="text-gray-500 text-sm mb-6">{error}</p>
             <button
-              onClick={() => router.push('/')}
+              onClick={() => router.push('/login')}
               className="w-full py-3 bg-brand text-white font-medium rounded-xl"
             >
               Go to StokSync

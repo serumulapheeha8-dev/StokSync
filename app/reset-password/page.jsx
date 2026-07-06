@@ -64,7 +64,7 @@ export default function ResetPassword() {
             This password reset link is no longer valid. Please request a new one from the login screen.
           </p>
           <button
-            onClick={() => router.push('/')}
+            onClick={() => router.push('/login')}
             className="w-full py-3 bg-brand text-white font-medium rounded-xl hover:bg-brand-dark transition-colors"
           >
             Back to login
