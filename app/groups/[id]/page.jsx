@@ -231,7 +231,7 @@ export default function GroupDetailPage() {
                   const memberContribs = contributions.filter(c => c.member_id === member.id)
                   const paidMonths = memberContribs.filter(c => c.status === 'Paid').length
                   return (
-                    <div key={member.id} className="flex items-center gap-3 px-4 py-3">
+                    <div key={member.id} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50" onClick={() => router.push(`/memb>
                       <div className="w-10 h-10 rounded-full bg-brand-light flex items-center justify-center flex-shrink-0">
                         <span className="text-brand font-semibold text-sm">{member.name.charAt(0).toUpperCase()}</span>
                       </div>
