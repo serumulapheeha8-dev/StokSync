@@ -219,10 +219,19 @@ export default function Dashboard() {
       {/* Header */}
       <div className="bg-white px-5 pt-12 pb-5 border-b border-gray-100">
         <div className="flex items-center justify-between max-w-lg mx-auto">
-          <div>
-            <p className="text-sm text-gray-400">Good day,</p>
-            <h1 className="text-xl font-semibold text-gray-900">{firstName} 👋</h1>
-          </div>
+          <div className="flex items-center gap-3">
+  <button onClick={() => router.push('/profile')} className="w-10 h-10 rounded-full bg-brand-light flex items-center justify-center overflow-hidden flex-shrink-0">
+    {profile?.avatar_url ? (
+      <img src={profile.avatar_url} alt={firstName} className="w-full h-full object-cover" />
+    ) : (
+      <span className="text-brand font-bold text-sm">{firstName.charAt(0).toUpperCase()}</span>
+    )}
+  </button>
+  <div>
+    <p className="text-sm text-gray-400">Good day,</p>
+    <h1 className="text-xl font-semibold text-gray-900">{firstName} 👋</h1>
+  </div>
+</div>
           <button onClick={handleLogout} className="text-xs text-gray-400 hover:text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg">
             Log out
           </button>
