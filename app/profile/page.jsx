@@ -37,7 +37,7 @@ export default function MyProfilePage() {
     setMemberships(mems || [])
 
     if (mems && mems.length > 0) {
-      const memberIds = mems.map(m => m.id)
+      const memberIds = mems.map(ms => ms.id)
       const { data: contribs } = await supabase
         .from('contributions')
         .select('*')
@@ -71,7 +71,7 @@ export default function MyProfilePage() {
     setUploadingAvatar(false)
   }
 
-  async function handleReceipt(c) {
+  function handleReceipt(c) {
     const mem = memberships.find(x => x.id === c.member_id)
     generateReceipt(c, mem, mem?.groups).catch(err => alert(err.message))
   }
@@ -246,7 +246,7 @@ export default function MyProfilePage() {
                         </span>
                         {c.status === 'Paid' && (
                           <button
-                            onClick={() => handleReceipt(c)}
+                            onClick={() => generateReceipt(c, mem, mem?.groups)}
                             className="text-xs text-brand hover:underline flex-shrink-0"
                           >
                             Receipt
