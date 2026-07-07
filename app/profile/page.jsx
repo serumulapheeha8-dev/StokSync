@@ -71,6 +71,11 @@ export default function MyProfilePage() {
     setUploadingAvatar(false)
   }
 
+  function handleReceipt(c) {
+    const mem = memberships.find(x => x.id === c.member_id)
+    generateReceipt(c, mem, mem?.groups).catch(err => alert(err.message))
+  }
+
   const paidContribs = contributions.filter(c => c.status === 'Paid')
   const totalContributed = paidContribs.reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0)
   const missedPayments = contributions.filter(c => c.status === 'Pending').length
@@ -241,7 +246,7 @@ export default function MyProfilePage() {
                         </span>
                         {c.status === 'Paid' && (
                           <button
-                            onClick={() => generateReceipt(c, memberships.find(x => x.id === c.member_id), memberships.find(x => x.id === c.member_id)?.gro
+                            onClick={() => handleReceipt(c)}
                             className="text-xs text-brand hover:underline flex-shrink-0"
                           >
                             Receipt
