@@ -241,7 +241,7 @@ export default function MyProfilePage() {
                         </span>
                         {c.status === 'Paid' && (
                           <button
-                            onClick={() => generateReceipt(c, mem, mem?.groups).catch(err => alert('Receipt error: ' + err.message))}
+                            onClick={() => { const grp = memberships.find(x => x.id === c.member_id); generateReceipt(c, grp, grp?.groups).catch(err => ale
                             className="text-xs text-brand hover:underline flex-shrink-0"
                           >
                             Receipt
