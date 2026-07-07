@@ -187,16 +187,16 @@ export default function MyProfilePage() {
           <div>
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">My stokvels</h2>
             <div className="space-y-3">
-              {memberships.map(m => (
-                <Link key={m.id} href={`/members/${m.id}`} className="block bg-white rounded-2xl p-4 border border-gray-100 hover:border-brand/30 transition-colors">
+              {memberships.map(ms => (
+                <Link key={ms.id} href={`/members/${ms.id}`} className="block bg-white rounded-2xl p-4 border border-gray-100 hover:border-brand/30 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-brand-light flex items-center justify-center">
-                        <span className="text-brand font-semibold text-sm">{m.groups?.name?.charAt(0).toUpperCase()}</span>
+                        <span className="text-brand font-semibold text-sm">{ms.groups?.name?.charAt(0).toUpperCase()}</span>
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">{m.groups?.name}</p>
-                        <p className="text-xs text-gray-400">R{m.groups?.contribution_amount}/month · Payout #{m.payout_order}</p>
+                        <p className="font-medium text-gray-900">{ms.groups?.name}</p>
+                        <p className="text-xs text-gray-400">R{ms.groups?.contribution_amount}/month · Payout #{ms.payout_order}</p>
                       </div>
                     </div>
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
