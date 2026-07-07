@@ -215,7 +215,7 @@ export default function MyProfilePage() {
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Recent payments</h2>
             <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
               {contributions.slice(0, 5).map(c => {
-                const mem = memberships.find(m => m.id === c.member_id)
+                const mem = memberships.find(mb => mb.id === c.member_id)
                 return (
                   <div key={c.id} className="flex items-center justify-between px-4 py-3">
                     <div className="flex items-center gap-3">
