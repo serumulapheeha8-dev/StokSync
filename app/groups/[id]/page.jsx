@@ -26,7 +26,7 @@ export default function GroupDetailPage() {
 
   async function load() {
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { router.push('/login'); return }
+    if (!session) { router.push('/'); return }
     setUserId(session.user.id)
 
     const { data: grp } = await supabase
@@ -231,7 +231,7 @@ export default function GroupDetailPage() {
                   const memberContribs = contributions.filter(c => c.member_id === member.id)
                   const paidMonths = memberContribs.filter(c => c.status === 'Paid').length
                   return (
-                    <div key={member.id} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50" onClick={() => router.push(`/memb>
+                    <div key={member.id} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50" onClick={() => router.push(`/members/${member.id}`)}>
                       <div className="w-10 h-10 rounded-full bg-brand-light flex items-center justify-center flex-shrink-0">
                         <span className="text-brand font-semibold text-sm">{member.name.charAt(0).toUpperCase()}</span>
                       </div>
@@ -284,7 +284,7 @@ export default function GroupDetailPage() {
                 />
                 <input
                   type="number"
-                  placeholder="Amount (default)"
+                  placeholder={`Amount (default: R${group.contribution_amount})`}
                   value={newContrib.amount}
                   onChange={e => setNewContrib({ ...newContrib, amount: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
@@ -302,7 +302,7 @@ export default function GroupDetailPage() {
               ) : (
                 contributions.map(c => {
                   return (
-                    <div key={c.id} className="flex items-center gap-3 px-4 py-3">
+                    <div key={c.id} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50" >
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm text-gray-900">{c.group_members?.name}</p>
                         <p className="text-xs text-gray-400">{c.month}</p>
@@ -339,4 +339,4 @@ export default function GroupDetailPage() {
       <Navbar />
     </div>
   )
-} 
+}

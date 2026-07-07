@@ -1,0 +1,11 @@
+At line:1 char:61
++ ... -Content 'temp_group.jsx') -replace 'gap-3 px-4 py-3", 'gap-3 px-4 py ...
++                                                             ~~~~~
+Unexpected token 'gap-3' in expression or statement.
+At line:1 char:108
++ ... r:bg-gray-50" onClick={() => router.push(''/members/'' + member.id)}> ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The string is missing the terminator: ".
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : UnexpectedToken
+ 
