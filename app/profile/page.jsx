@@ -246,7 +246,7 @@ export default function MyProfilePage() {
                         </span>
                         {c.status === 'Paid' && (
                           <button
-                            onClick={() => generateReceipt(c, mem, mem?.groups)}
+                            onClick={() => handleReceipt(c)}
                             className="text-xs text-brand hover:underline flex-shrink-0"
                           >
                             Receipt
