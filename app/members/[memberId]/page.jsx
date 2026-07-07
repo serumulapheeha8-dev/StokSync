@@ -1,5 +1,6 @@
 'use client'
 
+import { generateReceipt } from '@/lib/generateReceipt'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
@@ -318,11 +319,21 @@ export default function MemberProfilePage() {
                     <p className={`text-sm font-semibold ${c.status === 'Paid' ? 'text-green-600' : 'text-amber-500'}`}>
                       {c.status === 'Paid' ? `+R${c.amount}` : `R${c.amount}`}
                     </p>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      c.status === 'Paid' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
-                    }`}>
-                      {c.status}
-                    </span>
+                    <div className="flex items-center gap-2">
+  <span className={`text-xs px-2 py-0.5 rounded-full ${
+    c.status === 'Paid' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
+  }`}>
+    {c.status}
+  </span>
+  {c.status === 'Paid' && (
+    <button
+      onClick={() => generateReceipt(c, member, group)}
+      className="text-xs text-brand hover:underline flex-shrink-0"
+    >
+      Receipt
+    </button>
+  )}
+</div>
                   </div>
                 </div>
               ))

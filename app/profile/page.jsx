@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
+import { generateReceipt } from '@/lib/generateReceipt'
 import Navbar from '@/components/Navbar'
 import Link from 'next/link'
 
@@ -22,7 +23,6 @@ export default function MyProfilePage() {
     if (!session) { router.push('/login'); return }
     setUser(session.user)
 
-    // Get profile
     const { data: prof } = await supabase
       .from('profiles')
       .select('*')
@@ -30,14 +30,12 @@ export default function MyProfilePage() {
       .single()
     setProfile(prof)
 
-    // Get all group memberships
     const { data: mems } = await supabase
       .from('group_members')
       .select('*, groups(id, name, contribution_amount)')
       .eq('user_id', session.user.id)
     setMemberships(mems || [])
 
-    // Get all contributions
     if (mems && mems.length > 0) {
       const memberIds = mems.map(m => m.id)
       const { data: contribs } = await supabase
@@ -56,32 +54,18 @@ export default function MyProfilePage() {
   async function uploadAvatar(e) {
     const file = e.target.files?.[0]
     if (!file) return
-
     setUploadingAvatar(true)
     const fileExt = file.name.split('.').pop()
     const filePath = `profile-${user.id}-${Date.now()}.${fileExt}`
-
     const { error: uploadError } = await supabase.storage
       .from('avatars')
       .upload(filePath, file, { upsert: true })
-
     if (!uploadError) {
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath)
-
-      // Update profiles table
-      await supabase
-        .from('profiles')
-        .update({ avatar_url: publicUrl })
-        .eq('id', user.id)
-
-      // Also update all group_members rows for this user
-      await supabase
-        .from('group_members')
-        .update({ avatar_url: publicUrl })
-        .eq('user_id', user.id)
-
+      await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
+      await supabase.from('group_members').update({ avatar_url: publicUrl }).eq('user_id', user.id)
       setProfile(prev => ({ ...prev, avatar_url: publicUrl }))
     }
     setUploadingAvatar(false)
@@ -90,7 +74,6 @@ export default function MyProfilePage() {
   const paidContribs = contributions.filter(c => c.status === 'Paid')
   const totalContributed = paidContribs.reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0)
   const missedPayments = contributions.filter(c => c.status === 'Pending').length
-
   const fullName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Member'
   const joinDate = profile?.created_at
     ? new Date(profile.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -116,8 +99,6 @@ export default function MyProfilePage() {
             </svg>
             Back
           </button>
-
-          {/* Avatar + Name */}
           <div className="flex items-center gap-4">
             <div className="relative">
               <div className="w-20 h-20 rounded-2xl bg-brand-light flex items-center justify-center overflow-hidden">
@@ -142,7 +123,6 @@ export default function MyProfilePage() {
               </button>
               <input ref={fileInputRef} type="file" accept="image/*" onChange={uploadAvatar} className="hidden" />
             </div>
-
             <div className="flex-1">
               <h1 className="text-xl font-bold text-gray-900">{fullName}</h1>
               <p className="text-sm text-gray-400">{user?.email}</p>
@@ -255,9 +235,19 @@ export default function MyProfilePage() {
                       <p className={`text-sm font-semibold ${c.status === 'Paid' ? 'text-green-600' : 'text-amber-500'}`}>
                         {c.status === 'Paid' ? `+R${c.amount}` : `R${c.amount}`}
                       </p>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${c.status === 'Paid' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
-                        {c.status}
-                      </span>
+                      <div className="flex items-center gap-2 justify-end mt-0.5">
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${c.status === 'Paid' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
+                          {c.status}
+                        </span>
+                        {c.status === 'Paid' && (
+                          <button
+                            onClick={() => generateReceipt(c, mem, mem?.groups)}
+                            className="text-xs text-brand hover:underline flex-shrink-0"
+                          >
+                            Receipt
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )
