@@ -71,7 +71,7 @@ export default function MyProfilePage() {
     setUploadingAvatar(false)
   }
 
-  function handleReceipt(c) {
+  async function handleReceipt(c) {
     const mem = memberships.find(x => x.id === c.member_id)
     generateReceipt(c, mem, mem?.groups).catch(err => alert(err.message))
   }
