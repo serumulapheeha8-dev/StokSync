@@ -284,7 +284,7 @@ export default function GroupDetailPage() {
                 />
                 <input
                   type="number"
-                  placeholder={`Amount (default: R${group.contribution_amount})`}
+                  placeholder="Amount (default)"
                   value={newContrib.amount}
                   onChange={e => setNewContrib({ ...newContrib, amount: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
