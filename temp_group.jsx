@@ -1,12 +1,12 @@
 'use client'
 
+import Reports from '@/components/Reports'
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import Navbar from '@/components/Navbar'
 import InviteButton from '@/components/InviteButton'
 import PayButton from '@/components/PayButton'
-import Reports from '@/components/Reports'
 
 export default function GroupDetailPage() {
   const [group, setGroup] = useState(null)
@@ -27,7 +27,7 @@ export default function GroupDetailPage() {
 
   async function load() {
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { router.push('/login'); return }
+    if (!session) { router.push('/'); return }
     setUserId(session.user.id)
 
     const { data: grp } = await supabase
@@ -131,6 +131,7 @@ export default function GroupDetailPage() {
             )}
           </div>
 
+          {/* Stats */}
           {isAdmin && (
             <div className="grid grid-cols-3 gap-2 mb-4">
               <div className="bg-gray-50 rounded-xl p-3 text-center">
@@ -148,6 +149,7 @@ export default function GroupDetailPage() {
             </div>
           )}
 
+          {/* Invite Button */}
           {isAdmin && (
             <InviteButton
               groupId={group.id}
@@ -283,7 +285,7 @@ export default function GroupDetailPage() {
                 />
                 <input
                   type="number"
-                  placeholder="Amount"
+                  placeholder={`Amount (default: R${group.contribution_amount})`}
                   value={newContrib.amount}
                   onChange={e => setNewContrib({ ...newContrib, amount: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
@@ -299,41 +301,47 @@ export default function GroupDetailPage() {
               {contributions.length === 0 ? (
                 <p className="text-center text-gray-400 text-sm py-8">No contributions logged yet</p>
               ) : (
-                contributions.map(c => (
-                  <div key={c.id} className="flex items-center gap-3 px-4 py-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm text-gray-900">{c.group_members?.name}</p>
-                      <p className="text-xs text-gray-400">{c.month}</p>
-                    </div>
-                    <p className="text-sm font-semibold text-gray-900 flex-shrink-0">R{c.amount}</p>
-                    {c.status === 'Paid' ? (
-                      <span className="text-xs bg-brand-light text-brand-dark px-2.5 py-1 rounded-full font-medium flex-shrink-0">Paid</span>
-                    ) : (
-                      <div className="flex gap-2 flex-shrink-0">
-                        {isAdmin && (
-                          <button
-                            onClick={() => markPaid(c.id)}
-                            className="text-xs bg-amber-50 text-amber-600 border border-amber-200 px-2.5 py-1 rounded-full font-medium hover:bg-amber-100"
-                          >
-                            Confirm
-                          </button>
-                        )}
-                        <PayButton
-                          contribution={c}
-                          member={c.group_members}
-                          group={group}
-                        />
+                contributions.map(c => {
+                  return (
+                    <div key={c.id} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50" >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm text-gray-900">{c.group_members?.name}</p>
+                        <p className="text-xs text-gray-400">{c.month}</p>
                       </div>
-                    )}
-                  </div>
-                ))
+                      <p className="text-sm font-semibold text-gray-900 flex-shrink-0">R{c.amount}</p>
+                      {c.status === 'Paid' ? (
+                        <span className="text-xs bg-brand-light text-brand-dark px-2.5 py-1 rounded-full font-medium flex-shrink-0">Paid ✓</span>
+                      ) : (
+                        <div className="flex gap-2 flex-shrink-0">
+                          {isAdmin && (
+                            <button
+                              onClick={() => markPaid(c.id)}
+                              className="text-xs bg-amber-50 text-amber-600 border border-amber-200 px-2.5 py-1 rounded-full font-medium hover:bg-amber-100"
+                            >
+                              Confirm
+                            </button>
+                          )}
+                          <PayButton
+                            contribution={c}
+                            member={c.group_members}
+                            group={group}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })
               )}
             </div>
           </div>
         )}
+      </div>
 
-        {/* REPORTS TAB */}
-        {activeTab === 'reports' && (
+      {activeTab === 'reports' && (
+<Reports group={group} members={members} contributions={contributions} payouts={[]} />
+        )}
+      </div>
+      <Navbar />
           <Reports
             group={group}
             members={members}
@@ -341,9 +349,6 @@ export default function GroupDetailPage() {
             payouts={[]}
           />
         )}
-
-      </div>
-
       <Navbar />
     </div>
   )
