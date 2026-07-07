@@ -339,4 +339,4 @@ export default function GroupDetailPage() {
       <Navbar />
     </div>
   )
-}
+} 
