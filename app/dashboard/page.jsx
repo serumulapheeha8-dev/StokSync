@@ -8,12 +8,76 @@ import Navbar from '@/components/Navbar'
 import InstallPrompt from '@/components/InstallPrompt'
 import NotificationSettings from '@/components/NotificationSettings'
 
+// Simple Bar Chart Component (no external library needed)
+function BarChart({ data }) {
+  const max = Math.max(...data.map(d => d.amount), 1)
+  return (
+    <div className="flex items-end gap-2 h-24">
+      {data.map((d, i) => (
+        <div key={i} className="flex-1 flex flex-col items-center gap-1">
+          <p className="text-xs text-gray-400 font-medium">R{d.amount >= 1000 ? (d.amount/1000).toFixed(1)+'k' : d.amount}</p>
+          <div className="w-full rounded-t-lg bg-brand-light overflow-hidden" style={{height: '60px'}}>
+            <div
+              className="w-full bg-brand rounded-t-lg transition-all duration-500"
+              style={{height: `${Math.round((d.amount / max) * 60)}px`, marginTop: `${60 - Math.round((d.amount / max) * 60)}px`}}
+            />
+          </div>
+          <p className="text-xs text-gray-400 truncate w-full text-center">{d.label}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Donut Chart Component
+function DonutChart({ paid, total }) {
+  const percentage = total === 0 ? 0 : Math.round((paid / total) * 100)
+  const radius = 36
+  const circumference = 2 * Math.PI * radius
+  const strokeDashoffset = circumference - (percentage / 100) * circumference
+
+  return (
+    <div className="flex items-center gap-4">
+      <div className="relative w-24 h-24 flex-shrink-0">
+        <svg width="96" height="96" viewBox="0 0 96 96">
+          <circle cx="48" cy="48" r={radius} fill="none" stroke="#f0fdf4" strokeWidth="10"/>
+          <circle
+            cx="48" cy="48" r={radius} fill="none"
+            stroke="#1D9E75" strokeWidth="10"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            transform="rotate(-90 48 48)"
+            style={{transition: 'stroke-dashoffset 0.5s ease'}}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <p className="text-xl font-black text-brand">{percentage}%</p>
+        </div>
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-gray-900">{paid} of {total}</p>
+        <p className="text-xs text-gray-400">members paid</p>
+        <p className="text-xs text-gray-400">this month</p>
+      </div>
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [groups, setGroups] = useState([])
   const [recentContributions, setRecentContributions] = useState([])
-  const [stats, setStats] = useState({ nextPayout: null, dueThisMonth: 0 })
+  const [stats, setStats] = useState({
+    nextPayout: null,
+    dueThisMonth: 0,
+    totalCollected: 0,
+    thisMonthCollected: 0,
+    thisMonthPaid: 0,
+    thisMonthTotal: 0,
+    monthlyData: [],
+  })
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const supabase = createClient()
@@ -21,7 +85,7 @@ export default function Dashboard() {
   useEffect(() => {
     async function load() {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { router.push('/'); return }
+      if (!session) { router.push('/login'); return }
       setUser(session.user)
 
       const { data: prof } = await supabase
@@ -31,20 +95,17 @@ export default function Dashboard() {
         .single()
       setProfile(prof)
 
-      // Get groups where user is admin
       const { data: adminGroups } = await supabase
         .from('groups')
         .select('*')
         .eq('admin_id', session.user.id)
 
-      // Get group_ids where user is a member
       const { data: memberRows } = await supabase
         .from('group_members')
         .select('group_id')
         .eq('user_id', session.user.id)
 
       const memberGroupIds = (memberRows || []).map(m => m.group_id)
-
       let memberGroups = []
       if (memberGroupIds.length > 0) {
         const adminGroupIds = (adminGroups || []).map(g => g.id)
@@ -62,18 +123,54 @@ export default function Dashboard() {
       setGroups(allGroups)
 
       if (allGroups.length > 0) {
+        const groupIds = allGroups.map(g => g.id)
+
+        // Recent activity
         const { data: contribs } = await supabase
           .from('contributions')
           .select('*, group_members(name), groups(name)')
-          .in('group_id', allGroups.map(g => g.id))
+          .in('group_id', groupIds)
           .order('created_at', { ascending: false })
           .limit(5)
         setRecentContributions(contribs || [])
 
+        // All paid contributions for stats
+        const { data: allPaid } = await supabase
+          .from('contributions')
+          .select('amount, month, status')
+          .in('group_id', groupIds)
+          .eq('status', 'Paid')
+
+        // All contributions for this month
+        const currentMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' })
+        const { data: allContribs } = await supabase
+          .from('contributions')
+          .select('amount, month, status')
+          .in('group_id', groupIds)
+
+        const thisMonthContribs = (allContribs || []).filter(c => c.month === currentMonth)
+        const thisMonthPaid = thisMonthContribs.filter(c => c.status === 'Paid')
+        const thisMonthCollected = thisMonthPaid.reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0)
+        const totalCollected = (allPaid || []).reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0)
+
+        // Build last 6 months bar chart data
+        const months = []
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date()
+          d.setMonth(d.getMonth() - i)
+          const label = d.toLocaleString('default', { month: 'short' })
+          const fullMonth = d.toLocaleString('default', { month: 'long', year: 'numeric' })
+          const amount = (allPaid || [])
+            .filter(c => c.month === fullMonth)
+            .reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0)
+          months.push({ label, amount })
+        }
+
+        // Next payout
         const { data: nextPayoutData } = await supabase
           .from('payouts')
           .select('*, group_members(name)')
-          .in('group_id', allGroups.map(g => g.id))
+          .in('group_id', groupIds)
           .eq('status', 'Upcoming')
           .order('scheduled_date', { ascending: true })
           .limit(1)
@@ -81,12 +178,17 @@ export default function Dashboard() {
         const { data: pendingContribs } = await supabase
           .from('contributions')
           .select('amount')
-          .in('group_id', allGroups.map(g => g.id))
+          .in('group_id', groupIds)
           .eq('status', 'Pending')
 
         setStats({
           nextPayout: nextPayoutData?.[0] || null,
           dueThisMonth: pendingContribs?.length || 0,
+          totalCollected,
+          thisMonthCollected,
+          thisMonthPaid: thisMonthPaid.length,
+          thisMonthTotal: thisMonthContribs.length,
+          monthlyData: months,
         })
       }
 
@@ -97,7 +199,7 @@ export default function Dashboard() {
 
   async function handleLogout() {
     await supabase.auth.signOut()
-    router.push('/')
+    router.push('/login')
   }
 
   const firstName = profile?.full_name?.split(' ')[0] ||
@@ -114,6 +216,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
+      {/* Header */}
       <div className="bg-white px-5 pt-12 pb-5 border-b border-gray-100">
         <div className="flex items-center justify-between max-w-lg mx-auto">
           <div>
@@ -127,6 +230,8 @@ export default function Dashboard() {
       </div>
 
       <div className="max-w-lg mx-auto px-5 pt-5 space-y-5">
+
+        {/* Stats cards */}
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-white rounded-2xl p-4 border border-gray-100">
             <p className="text-xs text-gray-400 mb-1">My groups</p>
@@ -137,13 +242,48 @@ export default function Dashboard() {
             <p className="text-2xl font-semibold text-amber-500">{stats.dueThisMonth}</p>
           </div>
           <div className="bg-brand rounded-2xl p-4">
-            <p className="text-xs text-white/70 mb-1">Groups</p>
-            <p className="text-2xl font-semibold text-white">{groups.length}</p>
+            <p className="text-xs text-white/70 mb-1">Total</p>
+            <p className="text-lg font-semibold text-white">R{stats.totalCollected >= 1000 ? (stats.totalCollected/1000).toFixed(1)+'k' : stats.totalCollected}</p>
           </div>
         </div>
 
+        {/* Current balance + This month */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white rounded-2xl p-4 border border-gray-100">
+            <p className="text-xs text-gray-400 mb-1">Current balance</p>
+            <p className="text-xl font-bold text-gray-900">R{stats.totalCollected.toLocaleString('en-ZA')}</p>
+            <p className="text-xs text-gray-400 mt-1">Total collected</p>
+          </div>
+          <div className="bg-white rounded-2xl p-4 border border-gray-100">
+            <p className="text-xs text-gray-400 mb-1">This month</p>
+            <p className="text-xl font-bold text-brand">R{stats.thisMonthCollected.toLocaleString('en-ZA')}</p>
+            <p className="text-xs text-gray-400 mt-1">{stats.thisMonthPaid} contributions paid</p>
+          </div>
+        </div>
+
+        {/* Charts row */}
+        {groups.length > 0 && (
+          <div className="grid grid-cols-2 gap-3">
+            {/* Bar chart */}
+            <div className="bg-white rounded-2xl p-4 border border-gray-100 col-span-2 sm:col-span-1">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">6-month trend</p>
+              <BarChart data={stats.monthlyData} />
+            </div>
+
+            {/* Donut chart */}
+            <div className="bg-white rounded-2xl p-4 border border-gray-100 col-span-2 sm:col-span-1">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">This month's progress</p>
+              <DonutChart paid={stats.thisMonthPaid} total={stats.thisMonthTotal} />
+              {stats.thisMonthTotal === 0 && (
+                <p className="text-xs text-gray-400 mt-2">No contributions logged yet this month</p>
+              )}
+            </div>
+          </div>
+        )}
+
         <NotificationSettings />
 
+        {/* Next payout */}
         {stats.nextPayout && (
           <div className="bg-brand-light rounded-2xl p-4 border border-brand/20">
             <p className="text-xs font-medium text-brand-dark mb-1">Next payout</p>
@@ -163,6 +303,7 @@ export default function Dashboard() {
           </div>
         )}
 
+        {/* My Stokvels */}
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">My Stokvels</h2>
@@ -200,6 +341,7 @@ export default function Dashboard() {
           )}
         </div>
 
+        {/* Recent activity */}
         {recentContributions.length > 0 && (
           <div>
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Recent activity</h2>
@@ -223,6 +365,7 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+
       </div>
 
       <Navbar />
